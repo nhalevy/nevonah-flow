@@ -32,7 +32,7 @@ async function LinkError({ searchParams }: Pick<PageProps<"/login">, "searchPara
   if (error !== "link") return null;
   return (
     <p role="alert" className="mt-4 rounded-xl bg-muted px-3 py-2 text-sm">
-      That link didn&apos;t work. It may have expired, or it opened in a different browser. Request a new one below and open it in this browser.
+      That link didn&apos;t work. It may have expired or already been used. Request a new one below.
     </p>
   );
 }

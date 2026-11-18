@@ -1,8 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { createClient as createPlainClient } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
+
+// Sends the email with an "implicit" link: the session travels in the link itself,
+// so it works in whatever browser or device opens the email.
+function createSenderClient() {
+  return createPlainClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+    auth: { flowType: "implicit", persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  });
+}
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
@@ -11,7 +19,7 @@ export function LoginForm() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setState("sending");
-    const { error } = await createClient().auth.signInWithOtp({
+    const { error } = await createSenderClient().auth.signInWithOtp({
       email,
       options: { emailRedirectTo: `${window.location.origin}/auth/confirm` },
     });
@@ -24,9 +32,7 @@ export function LoginForm() {
         <p>
           📬 Check <strong>{email}</strong> and click the link.
         </p>
-        <p className="text-muted-foreground">
-          Open it in <strong>this same browser</strong>. Copy the link and paste it here if your email opens somewhere else.
-        </p>
+        <p className="text-muted-foreground">Use the newest email. Older links stop working.</p>
       </div>
     );
   }
