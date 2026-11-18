@@ -7,7 +7,7 @@ import { useStore } from "@/lib/store";
 import { useOpenTask, useOpenTaskId } from "@/lib/open-task";
 import { cachedExtras, loadExtras, updateCachedExtras } from "@/lib/task-extras";
 import { BUCKET_STYLE, detectProvider } from "@/lib/buckets";
-import { formatShortDate } from "@/lib/dates";
+import { EFFECTIVE_RANK, formatShortDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 import {
   REPEAT_LABEL,
@@ -36,15 +36,94 @@ const fieldBox =
 const sectionTitle = "text-xs font-bold tracking-[0.06em] text-muted-foreground";
 
 export function TaskPanel() {
-  const { tasks } = useStore();
+  const { tasks, domainOfTask, effective } = useStore();
   const openTaskId = useOpenTaskId();
   const openTask = useOpenTask();
-  const task = tasks.find((t) => t.id === openTaskId);
+
+  // When the panel opens, take a snapshot of that bucket's open tasks in the order
+  // the boards show them. "Next" walks this list, so a task doesn't jump around
+  // just because you changed its window. The list stays inside one bucket.
+  const [queue, setQueue] = useState<string[]>([]);
+  const [prevId, setPrevId] = useState<string | null>(null);
+  if (openTaskId !== prevId) {
+    setPrevId(openTaskId);
+    if (!openTaskId) setQueue([]);
+    else if (!queue.includes(openTaskId)) {
+      const start = tasks.find((t) => t.id === openTaskId);
+      const bucket = start ? domainOfTask(start)?.id : undefined;
+      setQueue(
+        tasks
+          .filter((t) => t.status !== "done" && domainOfTask(t)?.id === bucket)
+          .sort((a, b) => EFFECTIVE_RANK[effective(a)] - EFFECTIVE_RANK[effective(b)] || a.sort_order - b.sort_order)
+          .map((t) => t.id),
+      );
+    }
+  }
+
+  const live = new Set(tasks.filter((t) => t.status !== "done").map((t) => t.id));
+  const after = (id: string | null) => {
+    const i = id ? queue.indexOf(id) : -1;
+    return queue.slice(i + 1).find((x) => live.has(x)) ?? null;
+  };
+  const before = (id: string) => {
+    const i = queue.indexOf(id);
+    return i < 0 ? null : (queue.slice(0, i).reverse().find((x) => live.has(x)) ?? null);
+  };
+
+  // If the open task was just finished or deleted, slide to the next one instead of closing.
+  const currentId = openTaskId && live.has(openTaskId) ? openTaskId : openTaskId && queue.includes(openTaskId) ? after(openTaskId) : null;
+  const task = tasks.find((t) => t.id === currentId);
+  const nextId = after(currentId);
+  const prevTaskId = currentId ? before(currentId) : null;
+  const remaining = queue.filter((x) => live.has(x));
+  const position = currentId ? remaining.indexOf(currentId) + 1 : 0;
+
+  function go(id: string | null, e: React.MouseEvent) {
+    if (!id) return;
+    e.currentTarget.closest('[data-slot="sheet-content"]')?.scrollTo({ top: 0 });
+    openTask(id);
+  }
 
   return (
     <Sheet open={!!task} onOpenChange={(open) => !open && openTask(null)}>
       <SheetContent side="right" className="w-full overflow-y-auto p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-xl">
         {task && <PanelBody key={task.id} task={task} />}
+        {task && remaining.length > 1 && (
+          <nav
+            aria-label="Go through tasks"
+            className="sticky bottom-0 mt-auto flex items-center gap-2 border-t bg-popover/95 px-6 py-3 backdrop-blur-sm sm:px-8"
+          >
+            <button
+              type="button"
+              disabled={!prevTaskId}
+              onClick={(e) => go(prevTaskId, e)}
+              aria-label="Previous task"
+              className="rounded-xl px-3 py-2.5 text-[13px] font-semibold text-secondary-foreground hover:bg-accent disabled:opacity-30"
+            >
+              ←
+            </button>
+            <span className="flex-1 text-center text-xs text-muted-foreground">
+              {position} of {remaining.length}
+            </span>
+            {nextId ? (
+              <button
+                type="button"
+                onClick={(e) => go(nextId, e)}
+                className="rounded-xl bg-primary px-4 py-2.5 text-[13px] font-semibold text-primary-foreground"
+              >
+                Next task →
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => openTask(null)}
+                className="rounded-xl bg-primary px-4 py-2.5 text-[13px] font-semibold text-primary-foreground"
+              >
+                All caught up ✨
+              </button>
+            )}
+          </nav>
+        )}
       </SheetContent>
     </Sheet>
   );
