@@ -45,7 +45,7 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Everything except static files, images and the API (which uses its own key auth).
-    "/((?!_next/static|_next/image|favicon.ico|api/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    // Everything except static files, images, the app manifest/icons, and the API (which checks its own auth).
+    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|pwa-icon/|api/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };
