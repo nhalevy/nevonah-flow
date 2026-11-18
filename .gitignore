@@ -42,3 +42,6 @@ next-env.d.ts
 
 # keep the example env file
 !.env.local.example
+
+# one-time workbook import data (personal, never committed)
+/import/

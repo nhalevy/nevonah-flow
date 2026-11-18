@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useStore } from "@/lib/store";
 
@@ -33,6 +34,14 @@ export function SettingsView() {
           onBlur={() => sendFrom !== (workspace.send_from_email ?? "") && updateWorkspace({ send_from_email: sendFrom.trim() || null })}
           className="h-10 rounded-xl bg-accent px-3.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
+      </section>
+
+      <section className="flex flex-col gap-2 rounded-[20px] bg-card p-5 shadow-[0_1px_2px_rgba(35,33,43,.05)]">
+        <h2 className="text-sm font-bold">📥 Import</h2>
+        <p className="text-[13px] text-muted-foreground">Bring in tasks from your Who-Not-How workbook (preview first).</p>
+        <Link href="/import" className="self-start rounded-xl bg-secondary px-4 py-2 text-[13px] font-semibold">
+          Open import
+        </Link>
       </section>
 
       <button type="button" onClick={signOut} className="self-start rounded-xl px-4 py-2.5 text-sm font-semibold text-muted-foreground hover:bg-card">
