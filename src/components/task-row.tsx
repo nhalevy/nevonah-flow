@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useStore } from "@/lib/store";
+import { useOpenTask } from "@/lib/open-task";
+import { prefetchExtras } from "@/lib/task-extras";
 import { BUCKET_STYLE } from "@/lib/buckets";
 import { formatShortDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
@@ -66,7 +68,8 @@ export function MoonButton({ task, className }: { task: Task; className?: string
 
 /** One task line: ☐ always; ⏳ 🌙 on hover/focus (always visible on touch screens). */
 export function TaskRow({ task, showProject = true, showWindow = true }: { task: Task; showProject?: boolean; showWindow?: boolean }) {
-  const { projectById, personById, openTask, effective, today } = useStore();
+  const { projectById, personById, effective, today } = useStore();
+  const openTask = useOpenTask();
   const project = projectById.get(task.project_id);
   const assignee = task.assignee_id ? personById.get(task.assignee_id) : undefined;
   const waitingOn = task.waiting_on_id ? personById.get(task.waiting_on_id) : undefined;
@@ -89,6 +92,8 @@ export function TaskRow({ task, showProject = true, showWindow = true }: { task:
       <button
         type="button"
         onClick={() => openTask(task.id)}
+        onPointerEnter={() => prefetchExtras(task.id)}
+        onFocus={() => prefetchExtras(task.id)}
         className="flex min-w-0 flex-1 flex-col gap-1 text-left focus-visible:outline-none"
       >
         <span dir="auto" className="text-sm font-semibold leading-snug">

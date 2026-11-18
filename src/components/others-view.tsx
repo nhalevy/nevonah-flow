@@ -1,6 +1,8 @@
 "use client";
 
 import { useStore } from "@/lib/store";
+import { useOpenTask } from "@/lib/open-task";
+import { prefetchExtras } from "@/lib/task-extras";
 import { BUCKET_STYLE } from "@/lib/buckets";
 import { formatShortDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
@@ -63,7 +65,8 @@ export function OthersView() {
 }
 
 function OtherRow({ task }: { task: Task }) {
-  const { domainOfTask, projectById, openTask, backToMe, today } = useStore();
+  const { domainOfTask, projectById, backToMe, today } = useStore();
+  const openTask = useOpenTask();
   const domain = domainOfTask(task);
   const project = projectById.get(task.project_id);
   const style = BUCKET_STYLE[domain?.slug ?? "personal"];
@@ -74,7 +77,13 @@ function OtherRow({ task }: { task: Task }) {
       <span className="pt-0.5">
         <CheckButton task={task} />
       </span>
-      <button type="button" onClick={() => openTask(task.id)} className="flex min-w-0 flex-1 flex-col gap-1 text-left">
+      <button
+        type="button"
+        onClick={() => openTask(task.id)}
+        onPointerEnter={() => prefetchExtras(task.id)}
+        onFocus={() => prefetchExtras(task.id)}
+        className="flex min-w-0 flex-1 flex-col gap-1 text-left"
+      >
         <span dir="auto" className="text-sm font-semibold">
           {task.title}
         </span>

@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useStore } from "@/lib/store";
+import { useOpenTask, useOpenTaskId } from "@/lib/open-task";
+import { cachedExtras, loadExtras, updateCachedExtras } from "@/lib/task-extras";
 import { BUCKET_STYLE, detectProvider } from "@/lib/buckets";
 import { formatShortDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
@@ -34,7 +36,9 @@ const fieldBox =
 const sectionTitle = "text-xs font-bold tracking-[0.06em] text-muted-foreground";
 
 export function TaskPanel() {
-  const { openTaskId, openTask, tasks } = useStore();
+  const { tasks } = useStore();
+  const openTaskId = useOpenTaskId();
+  const openTask = useOpenTask();
   const task = tasks.find((t) => t.id === openTaskId);
 
   return (
@@ -355,21 +359,23 @@ function PanelBody({ task }: { task: Task }) {
 
 function LinksSection({ task }: { task: Task }) {
   const supabase = useMemo(() => createClient(), []);
-  const [links, setLinks] = useState<TaskLink[] | null>(null);
+  const [links, setLinksState] = useState<TaskLink[] | null>(() => cachedExtras(task.id)?.links ?? null);
   const [url, setUrl] = useState("");
+
+  const setLinks = (update: (l: TaskLink[] | null) => TaskLink[]) =>
+    setLinksState((cur) => {
+      const next = update(cur);
+      updateCachedExtras(task.id, (e) => ({ ...e, links: next }));
+      return next;
+    });
 
   useEffect(() => {
     let alive = true;
-    supabase
-      .from("task_links")
-      .select("id, task_id, title, url, provider, created_at")
-      .eq("task_id", task.id)
-      .order("created_at")
-      .then(({ data }) => alive && setLinks((data as TaskLink[]) ?? []));
+    loadExtras(task.id, { force: true }).then((e) => alive && setLinksState(e.links));
     return () => {
       alive = false;
     };
-  }, [supabase, task.id]);
+  }, [task.id]);
 
   async function add(e: React.FormEvent) {
     e.preventDefault();
@@ -431,22 +437,24 @@ function LinksSection({ task }: { task: Task }) {
 function NotesSection({ task }: { task: Task }) {
   const supabase = useMemo(() => createClient(), []);
   const { today } = useStore();
-  const [notes, setNotes] = useState<TaskNote[] | null>(null);
+  const [notes, setNotesState] = useState<TaskNote[] | null>(() => cachedExtras(task.id)?.notes ?? null);
   const [draft, setDraft] = useState("");
   const [writing, setWriting] = useState(false);
 
+  const setNotes = (update: (n: TaskNote[] | null) => TaskNote[]) =>
+    setNotesState((cur) => {
+      const next = update(cur);
+      updateCachedExtras(task.id, (e) => ({ ...e, notes: next }));
+      return next;
+    });
+
   useEffect(() => {
     let alive = true;
-    supabase
-      .from("task_notes")
-      .select("id, task_id, body, created_at")
-      .eq("task_id", task.id)
-      .order("created_at", { ascending: false })
-      .then(({ data }) => alive && setNotes((data as TaskNote[]) ?? []));
+    loadExtras(task.id).then((e) => alive && setNotesState(e.notes));
     return () => {
       alive = false;
     };
-  }, [supabase, task.id]);
+  }, [task.id]);
 
   async function add(e: React.FormEvent) {
     e.preventDefault();

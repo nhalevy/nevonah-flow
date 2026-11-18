@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useStore } from "@/lib/store";
+import { useOpenTask } from "@/lib/open-task";
 import { BUCKET_STYLE, detectProvider } from "@/lib/buckets";
 import { cn } from "@/lib/utils";
 import type { Task } from "@/lib/types";
@@ -15,7 +16,8 @@ const URL_RE = /https?:\/\/[^\s]+/i;
 export function ShareView() {
   const params = useSearchParams();
   const router = useRouter();
-  const { tasks, domains, projects, domainOfTask, addTask, openTask } = useStore();
+  const { tasks, domains, projects, domainOfTask, addTask } = useStore();
+  const openTask = useOpenTask();
 
   const rawText = params.get("text") ?? "";
   const url = params.get("url") || rawText.match(URL_RE)?.[0] || "";

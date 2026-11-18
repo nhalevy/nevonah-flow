@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { loadWorkspace } from "./load";
+import { OpenTaskProvider } from "./open-task";
 import { effectiveWindow, nextOccurrence, todayIn, windowForDate, type Effective } from "./dates";
 import {
   TASK_COLUMNS,
@@ -38,7 +39,6 @@ type TaskPatch = Partial<
 interface Store extends WorkspaceData {
   today: string;
   me: Person | undefined;
-  openTaskId: string | null;
   // lookups
   projectById: Map<string, Project>;
   domainById: Map<string, Domain>;
@@ -48,7 +48,6 @@ interface Store extends WorkspaceData {
   peopleForDomain: (domainId: string, opts?: { includeInactive?: boolean }) => Person[];
   isOnMyPlate: (task: Task) => boolean;
   // actions
-  openTask: (id: string | null) => void;
   addTask: (input: { title: string; projectId: string; workWindow?: WorkWindow }) => Promise<Task | null>;
   updateTask: (id: string, patch: TaskPatch) => Promise<void>;
   setWindow: (id: string, win: WorkWindow) => Promise<void>;
@@ -75,7 +74,6 @@ export function useStore(): Store {
 export function StoreProvider({ initial, children }: { initial: WorkspaceData; children: React.ReactNode }) {
   const supabase = useMemo(() => createClient(), []);
   const [data, setData] = useState<WorkspaceData>(initial);
-  const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [today, setToday] = useState(() => todayIn(initial.workspace.timezone));
   const tasksRef = useRef(data.tasks);
   useEffect(() => {
@@ -292,8 +290,8 @@ export function StoreProvider({ initial, children }: { initial: WorkspaceData; c
 
   const deleteTask = useCallback(
     async (id: string) => {
+      // The panel closes by itself once the task is gone.
       setData((d) => ({ ...d, tasks: d.tasks.filter((t) => t.id !== id) }));
-      setOpenTaskId((cur) => (cur === id ? null : cur));
       const { error } = await supabase.from("tasks").delete().eq("id", id);
       if (error) fail(error.message);
       else toast("Task deleted");
@@ -372,7 +370,6 @@ export function StoreProvider({ initial, children }: { initial: WorkspaceData; c
     ...data,
     today,
     me,
-    openTaskId,
     projectById,
     domainById,
     personById,
@@ -380,7 +377,6 @@ export function StoreProvider({ initial, children }: { initial: WorkspaceData; c
     effective,
     peopleForDomain,
     isOnMyPlate,
-    openTask: setOpenTaskId,
     addTask,
     updateTask,
     setWindow,
@@ -396,5 +392,9 @@ export function StoreProvider({ initial, children }: { initial: WorkspaceData; c
     reload,
   };
 
-  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
+  return (
+    <StoreContext.Provider value={value}>
+      <OpenTaskProvider>{children}</OpenTaskProvider>
+    </StoreContext.Provider>
+  );
 }

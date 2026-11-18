@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useStore } from "@/lib/store";
+import { useOpenTask } from "@/lib/open-task";
+import { prefetchExtras } from "@/lib/task-extras";
 import { BUCKET_STYLE } from "@/lib/buckets";
 import { EFFECTIVE_RANK, formatShortDate, type Effective } from "@/lib/dates";
 import { cn } from "@/lib/utils";
@@ -192,7 +194,8 @@ function Column({ project, tasks }: { project: Project; tasks: Task[] }) {
 }
 
 function Card({ task }: { task: Task }) {
-  const { effective, personById, openTask, today, domainOfTask } = useStore();
+  const { effective, personById, today, domainOfTask } = useStore();
+  const openTask = useOpenTask();
   const e = effective(task);
   const style = BUCKET_STYLE[domainOfTask(task)?.slug ?? "personal"];
   const assignee = task.assignee_id ? personById.get(task.assignee_id) : undefined;
@@ -222,6 +225,8 @@ function Card({ task }: { task: Task }) {
           type="button"
           dir="auto"
           onClick={() => openTask(task.id)}
+          onPointerEnter={() => prefetchExtras(task.id)}
+          onFocus={() => prefetchExtras(task.id)}
           className="min-w-0 flex-1 text-left text-sm leading-snug font-semibold focus-visible:outline-none"
         >
           {task.title}
