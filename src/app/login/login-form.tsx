@@ -15,6 +15,7 @@ function createSenderClient() {
 export function LoginForm() {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [reason, setReason] = useState("");
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -23,7 +24,17 @@ export function LoginForm() {
       email,
       options: { emailRedirectTo: `${window.location.origin}/auth/confirm` },
     });
-    setState(error ? "error" : "sent");
+    if (error) {
+      const limited = error.status === 429 || /rate limit/i.test(error.message);
+      setReason(
+        limited
+          ? "Too many emails for now (the free email service allows about 2 per hour). Please try again later."
+          : `Couldn't send the email: ${error.message}`,
+      );
+      setState("error");
+    } else {
+      setState("sent");
+    }
   }
 
   if (state === "sent") {
@@ -56,7 +67,7 @@ export function LoginForm() {
       </Button>
       {state === "error" && (
         <p role="alert" className="text-sm text-destructive">
-          Couldn&apos;t send the email. Please wait a minute and try again.
+          {reason}
         </p>
       )}
     </form>
