@@ -103,7 +103,7 @@ function BucketCard({ domain, hiddenOnPhone }: { domain: Domain; hiddenOnPhone: 
     EFFECTIVE_RANK[a.e] - EFFECTIVE_RANK[b.e] || a.t.sort_order - b.t.sort_order;
 
   const passed = withEff.filter((x) => x.e === "passed").map((x) => x.t);
-  const candidates = withEff.filter((x) => x.e === "today" || x.e === "this_week").sort(byRank);
+  const candidates = withEff.filter((x) => x.e === "today").sort(byRank);
   const upNext = candidates.slice(0, 3).map((x) => x.t);
   const upNextIds = new Set(upNext.map((t) => t.id));
   const rest = withEff.filter((x) => x.e !== "passed" && !upNextIds.has(x.t.id)).sort(byRank);
@@ -137,9 +137,13 @@ function BucketCard({ domain, hiddenOnPhone }: { domain: Domain; hiddenOnPhone: 
       <div className="flex flex-col px-2.5 pt-3.5 pb-1">
         <span className="px-2 pb-1.5 text-[11px] font-bold tracking-[0.08em] text-muted-foreground">UP NEXT</span>
         {upNext.length === 0 ? (
-          <p className="px-2 py-3 text-sm text-muted-foreground">
-            {mine.length ? "Nothing planned for this week. ☕ Open “See more” to pick something." : "All clear here ☕"}
-          </p>
+          <div className="flex flex-col items-center gap-1 px-2 pt-3 pb-5 text-center">
+            <span className="text-3xl" aria-hidden="true">
+              🎉
+            </span>
+            <p className="text-[15px] font-bold">Today&apos;s clear!</p>
+            <p className="text-[13px] text-muted-foreground">Nothing left for today here. Enjoy it.</p>
+          </div>
         ) : (
           upNext.map((t) => <TaskRow key={t.id} task={t} />)
         )}
@@ -199,9 +203,12 @@ function BucketCard({ domain, hiddenOnPhone }: { domain: Domain; hiddenOnPhone: 
             type="button"
             aria-expanded={expanded}
             onClick={() => setExpanded((v) => !v)}
-            className={cn("flex flex-1 items-center gap-2 px-[18px] py-3.5 text-left text-[13px] font-semibold", style.ink)}
+            className={cn(
+              "flex flex-1 items-center gap-2 px-[18px] py-3.5 text-left",
+              upNext.length ? cn("text-[13px] font-semibold", style.ink) : "text-xs text-muted-foreground hover:text-foreground",
+            )}
           >
-            {expanded ? "Show less" : `See ${rest.length} more`}
+            {expanded ? "Show less" : upNext.length ? `See ${rest.length} more` : `See upcoming tasks (${rest.length})`}
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true" className={cn("transition-transform", expanded && "rotate-180")}>
               <path d="M6 9l6 6 6-6" />
             </svg>
