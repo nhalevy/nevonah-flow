@@ -8,7 +8,7 @@ import { prefetchExtras } from "@/lib/task-extras";
 import { BUCKET_STYLE } from "@/lib/buckets";
 import { EFFECTIVE_RANK, formatShortDate, type Effective } from "@/lib/dates";
 import { cn } from "@/lib/utils";
-import { STATUS_LABEL, WINDOW_LABEL, type Project, type Task } from "@/lib/types";
+import { NEW_TASK_TITLE, STATUS_LABEL, WINDOW_LABEL, type Project, type Task } from "@/lib/types";
 import { Avatar } from "./avatar";
 import { CheckButton } from "./task-row";
 
@@ -133,6 +133,7 @@ function rank(e: Effective) {
 
 function Column({ project, tasks }: { project: Project; tasks: Task[] }) {
   const { addTask } = useStore();
+  const openTask = useOpenTask();
   const [adding, setAdding] = useState(false);
   const [title, setTitle] = useState("");
 
@@ -143,6 +144,14 @@ function Column({ project, tasks }: { project: Project; tasks: Task[] }) {
     setTitle("");
     const created = await addTask({ title: value, projectId: project.id });
     if (!created) setTitle(value);
+  }
+
+  async function addWithDetails() {
+    const value = title.trim() || NEW_TASK_TITLE;
+    setTitle("");
+    setAdding(false);
+    const created = await addTask({ title: value, projectId: project.id });
+    if (created) openTask(created.id);
   }
 
   return (
@@ -174,6 +183,13 @@ function Column({ project, tasks }: { project: Project; tasks: Task[] }) {
           <div className="flex gap-2">
             <button type="submit" className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">
               Add
+            </button>
+            <button
+              type="button"
+              onClick={addWithDetails}
+              className="rounded-lg px-3 py-1.5 text-xs font-semibold text-secondary-foreground shadow-[inset_0_0_0_1px_var(--input)] hover:bg-accent"
+            >
+              ✏️ Details
             </button>
             <button type="button" onClick={() => setAdding(false)} className="rounded-lg px-2 py-1.5 text-xs text-muted-foreground">
               Done

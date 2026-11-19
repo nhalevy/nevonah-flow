@@ -2,12 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useStore } from "@/lib/store";
+import { useOpenTask } from "@/lib/open-task";
 import { BUCKET_STYLE } from "@/lib/buckets";
 import { cn } from "@/lib/utils";
+import { NEW_TASK_TITLE } from "@/lib/types";
 
 /** Type a name, press Enter. Bucket + project are small optional pickers. Press "N" anywhere to focus. */
 export function QuickAdd({ domainId, onDomainChange }: { domainId: string; onDomainChange: (id: string) => void }) {
   const { domains, projects, addTask } = useStore();
+  const openTask = useOpenTask();
   const [title, setTitle] = useState("");
   const [projectId, setProjectId] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -37,6 +40,16 @@ export function QuickAdd({ domainId, onDomainChange }: { domainId: string; onDom
     if (!created) setTitle(value);
   }
 
+  /** Create the task and open it in the full panel to fill in everything else. */
+  async function addWithDetails() {
+    if (!effectiveProject) return;
+    const value = title.trim() || NEW_TASK_TITLE;
+    setTitle("");
+    const created = await addTask({ title: value, projectId: effectiveProject });
+    if (created) openTask(created.id);
+    else setTitle(title);
+  }
+
   return (
     <form
       onSubmit={submit}
@@ -59,6 +72,15 @@ export function QuickAdd({ domainId, onDomainChange }: { domainId: string; onDom
           className="h-10 min-w-0 flex-1 bg-transparent text-[15px] outline-none"
         />
         <kbd className="hidden rounded-lg bg-muted px-2 py-1 text-xs text-muted-foreground md:block">N</kbd>
+        <button
+          type="button"
+          onClick={addWithDetails}
+          title="Add and fill in all the details"
+          className="h-9 rounded-xl px-3 text-sm font-semibold text-secondary-foreground shadow-[inset_0_0_0_1px_var(--input)] hover:bg-accent"
+        >
+          ✏️ <span className="hidden sm:inline">Details</span>
+          <span className="sr-only sm:hidden">Add with details</span>
+        </button>
         <button type="submit" className="h-9 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground">
           Add
         </button>

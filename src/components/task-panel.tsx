@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { useStore } from "@/lib/store";
@@ -10,6 +10,7 @@ import { BUCKET_STYLE, detectProvider } from "@/lib/buckets";
 import { EFFECTIVE_RANK, formatShortDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 import {
+  NEW_TASK_TITLE,
   REPEAT_LABEL,
   STATUS_LABEL,
   WINDOW_LABEL,
@@ -150,6 +151,20 @@ function PanelBody({ task }: { task: Task }) {
   const people = domain ? peopleForDomain(domain.id) : [];
   const [title, setTitle] = useState(task.title);
   const [brief, setBrief] = useState(task.brief ?? (delegated ? BRIEF_TEMPLATE : ""));
+  const titleRef = useRef<HTMLTextAreaElement>(null);
+
+  // A task just made with "Details": put the cursor in the name so you can type right away.
+  useEffect(() => {
+    if (task.title !== NEW_TASK_TITLE) return;
+    const el = titleRef.current;
+    const t = setTimeout(() => {
+      el?.focus();
+      el?.select();
+    }, 160);
+    return () => clearTimeout(t);
+    // only on first open of this task
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const statusOptions: Status[] = ["not_started", "in_progress", "waiting", "blocked"];
   const windowOptions: WorkWindow[] = ["today", "tomorrow", "this_week", "next_week", "someday"];
@@ -200,6 +215,7 @@ function PanelBody({ task }: { task: Task }) {
           Task name
         </label>
         <textarea
+          ref={titleRef}
           id="task-title"
           dir="auto"
           rows={Math.max(1, Math.ceil(title.length / 34))}

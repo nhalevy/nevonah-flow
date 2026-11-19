@@ -86,6 +86,9 @@ export interface WorkspaceData {
   tasks: Task[];
 }
 
+/** Placeholder name for a task created straight into the details panel; the panel selects it so you can type over it. */
+export const NEW_TASK_TITLE = "New task";
+
 export const TASK_COLUMNS =
   "id, workspace_id, project_id, assignee_id, waiting_on_id, title, status, work_window, window_set_on, due_date, follow_up_date, brief, repeat_rule, sort_order, completed_at, created_at, updated_at";
 
