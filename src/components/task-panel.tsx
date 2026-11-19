@@ -37,7 +37,7 @@ const fieldBox =
 const sectionTitle = "text-xs font-bold tracking-[0.06em] text-muted-foreground";
 
 export function TaskPanel() {
-  const { tasks, domainOfTask, effective } = useStore();
+  const { tasks, domainOfTask, effective, addTask } = useStore();
   const openTaskId = useOpenTaskId();
   const openTask = useOpenTask();
 
@@ -85,28 +85,55 @@ export function TaskPanel() {
     openTask(id);
   }
 
+  /** New task in the same project as the one you're looking at, opened right here. */
+  async function newTask(from: Task, e: React.MouseEvent) {
+    const scroller = e.currentTarget.closest('[data-slot="sheet-content"]');
+    const created = await addTask({ title: NEW_TASK_TITLE, projectId: from.project_id });
+    if (!created) return;
+    scroller?.scrollTo({ top: 0 });
+    // slot it in right after the current task, so Next/← keep your place in the review
+    setQueue((q) => {
+      const i = q.indexOf(from.id);
+      return i < 0 ? [...q, created.id] : [...q.slice(0, i + 1), created.id, ...q.slice(i + 1)];
+    });
+    openTask(created.id);
+  }
+
   return (
     <Sheet open={!!task} onOpenChange={(open) => !open && openTask(null)}>
       <SheetContent side="right" className="w-full overflow-y-auto p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-xl">
         {task && <PanelBody key={task.id} task={task} />}
-        {task && remaining.length > 1 && (
+        {task && (
           <nav
             aria-label="Go through tasks"
             className="sticky bottom-0 mt-auto flex items-center gap-2 border-t bg-popover/95 px-6 py-3 backdrop-blur-sm sm:px-8"
           >
+            {remaining.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  disabled={!prevTaskId}
+                  onClick={(e) => go(prevTaskId, e)}
+                  aria-label="Previous task"
+                  className="rounded-xl px-3 py-2.5 text-[13px] font-semibold text-secondary-foreground hover:bg-accent disabled:opacity-30"
+                >
+                  ←
+                </button>
+                <span className="text-xs whitespace-nowrap text-muted-foreground">
+                  {position} of {remaining.length}
+                </span>
+              </>
+            )}
+            <span className="flex-1" />
             <button
               type="button"
-              disabled={!prevTaskId}
-              onClick={(e) => go(prevTaskId, e)}
-              aria-label="Previous task"
-              className="rounded-xl px-3 py-2.5 text-[13px] font-semibold text-secondary-foreground hover:bg-accent disabled:opacity-30"
+              onClick={(e) => newTask(task, e)}
+              title="New task in the same project"
+              className="rounded-xl px-3 py-2.5 text-[13px] font-semibold text-secondary-foreground shadow-[inset_0_0_0_1px_var(--input)] hover:bg-accent"
             >
-              ←
+              ＋ New
             </button>
-            <span className="flex-1 text-center text-xs text-muted-foreground">
-              {position} of {remaining.length}
-            </span>
-            {nextId ? (
+            {remaining.length <= 1 ? null : nextId ? (
               <button
                 type="button"
                 onClick={(e) => go(nextId, e)}
